@@ -40,20 +40,20 @@ public class LazyFactory<T> {
 
     private static class LockFreeLazy<T> implements Lazy<T> {
         private volatile T result;
-        private volatile Supplier<T> mySupplier;
+        private volatile Supplier<T> supplier;
         private static final AtomicReferenceFieldUpdater<LockFreeLazy, Object> updater =
                 AtomicReferenceFieldUpdater.newUpdater(LockFreeLazy.class, Object.class, "result");
 
-        public LockFreeLazy(Supplier<T> supplier) {
-            mySupplier = supplier;
+        public LockFreeLazy(Supplier<T> supp) {
+            supplier = supp;
         }
 
 
         public T get() {
-            Supplier<T> supplier = mySupplier;
-            if (supplier != null) {
-                if (updater.compareAndSet(this, null, supplier.get())) {
-                    mySupplier = null;
+            Supplier<T> supp = supplier;
+            if (supp != null) {
+                if (updater.compareAndSet(this, null, supp.get())) {
+                    supplier = null;
                 }
             }
             return result;

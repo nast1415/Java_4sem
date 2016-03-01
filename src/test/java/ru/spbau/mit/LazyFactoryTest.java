@@ -2,16 +2,20 @@ package ru.spbau.mit;
 
 import org.junit.Test;
 
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.*;
 
 public class LazyFactoryTest {
 
+    private static final int NUMBER_OF_THREADS = 50;
+
     //Create suppliers
 
-    private Supplier<String> nullSupplier = new Supplier<String>() {
+    private final Supplier<String> nullSupplier = new Supplier<String>() {
         private boolean isCalled = false;
 
         @Override
@@ -22,7 +26,7 @@ public class LazyFactoryTest {
         }
     };
 
-    private Supplier<String> supplier = new Supplier<String>() {
+    private final Supplier<String> supplier = new Supplier<String>() {
         private boolean isCalled = false;
 
         @Override
@@ -35,19 +39,19 @@ public class LazyFactoryTest {
 
     //Special functions for tests
 
-    public void checkForNullTests(Lazy<String> lazy) {
+    private void checkForNullTests(Lazy<String> lazy) {
         assertNull(lazy.get());
         assertNull(lazy.get());
     }
 
-    public void checkForEqualTests(Lazy<String> lazy) {
+    private void checkForEqualTests(Lazy<String> lazy) {
         String firstGet = lazy.get();
         String secondGet = lazy.get();
         assertEquals(firstGet, secondGet);
         assertEquals(firstGet, "I've done!");
     }
 
-    public Supplier<Integer> createMultiThreadSupplier(final Random random) {
+    private Supplier<Integer> createMultiThreadSupplier(final Random random) {
         return new Supplier<Integer>() {
             @Override
             public Integer get() {
@@ -56,79 +60,126 @@ public class LazyFactoryTest {
         };
     }
 
-    public void createAndCheckThreads(final Lazy<Integer> lazy) {
-        Thread[] threads = new Thread[5];
-        final Integer[] result = new Integer[5];
+    private static class SupplCounter implements Supplier<Object> {
+        private AtomicInteger cnt = new AtomicInteger(0);
+        private Object result;
 
-        for (int i = 0; i < 5; i++) {
-            final int currentNumber = i;
-            threads[currentNumber] = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    result[currentNumber] = lazy.get();
+        SupplCounter(Object result) {
+            this.result = result;
+        }
+
+        @Override
+        public Object get() {
+            Thread.yield();
+            cnt.incrementAndGet();
+            return result;
+        }
+
+        public Integer getCount() {
+            return cnt.get();
+        }
+    }
+
+    private void checkForMultiThread(FactoryFromSupplier factory, boolean isSupplierCalledOnce,
+                                     Object returnValue) {
+        SupplCounter supplier = new SupplCounter(returnValue);
+        Lazy<Object> lazy = factory.createLazy(supplier);
+
+        List<Thread> tasks = new ArrayList<>();
+        List<Object> results = Collections.synchronizedList(new ArrayList<>());
+        CyclicBarrier barrier = new CyclicBarrier(NUMBER_OF_THREADS);
+
+        for (int i = 0; i < NUMBER_OF_THREADS; i++) {
+            Thread task = new Thread(() -> {
+                try {
+                    barrier.await();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+                results.add(lazy.get());
             });
+            tasks.add(task);
+            task.start();
         }
 
-        for (int i = 0; i < 5; i++) {
-            threads[i].start();
+        for (Thread task : tasks) {
+            try {
+                task.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        assertEquals(NUMBER_OF_THREADS, results.size());
+
+        for (Object result : results) {
+            assertTrue(returnValue == result);
         }
 
-        for (int i = 0; i < 4; i++) {
-            assertEquals(result[i], result[i + 1]);
+        assertTrue(supplier.getCount() > 0);
+        if (isSupplierCalledOnce) {
+            assertTrue(1 == supplier.getCount());
         }
     }
 
     //Tests for one thread
-
     @Test
     public void nullTestLazyForOneThread() {
-        Lazy<String> myLazy = LazyFactory.createLazyOneThread(nullSupplier);
-        checkForNullTests(myLazy);
+        Lazy<String> lazy = LazyFactory.createLazyOneThread(nullSupplier);
+        checkForNullTests(lazy);
     }
 
     @Test
     public void equalsTestLazyForOneThread() {
-        Lazy<String> myLazy = LazyFactory.createLazyOneThread(supplier);
-        checkForEqualTests(myLazy);
+        Lazy<String> lazy = LazyFactory.createLazyOneThread(supplier);
+        checkForEqualTests(lazy);
+    }
+
+    private static class classWrapper<T> {
+        public volatile T content;
+
+        public classWrapper(T content) {
+            this.content = content;
+        }
+    }
+
+    @Test
+    public void lazinessTestLazyForOneThread() {
+        classWrapper<Boolean> isAsked = new classWrapper<>(false);
+
+        Lazy<String> lazy = LazyFactory.createLazyOneThread(() -> {
+            assertTrue(isAsked.content);
+            return "It's OK!";
+        });
+
+        isAsked.content = true;
     }
 
     //MultiThread tests
 
     @Test
     public void nullTestLazyMultiThread() {
-        Lazy<String> myLazy = LazyFactory.createLazyMultiThread(nullSupplier);
-        checkForNullTests(myLazy);
+        Lazy<String> lazy = LazyFactory.createLazyMultiThread(nullSupplier);
+        checkForNullTests(lazy);
     }
 
     @Test
     public void equalsTestLazyMultiThread() {
-        Lazy<String> myLazy = LazyFactory.createLazyMultiThread(supplier);
-        checkForEqualTests(myLazy);
+        Lazy<String> lazy = LazyFactory.createLazyMultiThread(supplier);
+        checkForEqualTests(lazy);
     }
 
     @Test
     public void dataRaceTestLazyMultiThread() {
-        final Random myRandom = new Random();
-        Supplier<Integer> mySupplier = createMultiThreadSupplier(myRandom);
-        Lazy<Integer> myLazy = LazyFactory.createLazyMultiThread(mySupplier);
-
-        createAndCheckThreads(myLazy);
-
+        checkForMultiThread(LazyFactory::createLazyMultiThread, true, new Object());
     }
 
     //MultiThread lock-free tests
 
     @Test
     public void nullTestLazyMultiThreadLockFree() {
-        Lazy<String> myLazy = LazyFactory.createLazyMultiThreadLockFree(nullSupplier);
-        checkForNullTests(myLazy);
+        Lazy<String> lazy = LazyFactory.createLazyMultiThreadLockFree(nullSupplier);
+        checkForNullTests(lazy);
     }
 
     @Test
@@ -139,11 +190,6 @@ public class LazyFactoryTest {
 
     @Test
     public void dataRaceTestLazyMultiThreadLockFree() {
-        final Random myRandom = new Random();
-        Supplier<Integer> mySupplier = createMultiThreadSupplier(myRandom);
-        Lazy<Integer> myLazy = LazyFactory.createLazyMultiThreadLockFree(mySupplier);
-
-        createAndCheckThreads(myLazy);
-
+        checkForMultiThread(LazyFactory::createLazyMultiThreadLockFree, false, new Object());
     }
 }
