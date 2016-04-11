@@ -29,7 +29,7 @@ public class Request {
         outputStream.writeInt(partId);
     }
 
-    public Request readRequestFromInputStream(DataInputStream inputStream) throws IOException {
+    public static Request readRequestFromInputStream(DataInputStream inputStream) throws IOException {
         return new Request(
                 inputStream.readInt(), //Read fileId
                 inputStream.readInt() //Read partId

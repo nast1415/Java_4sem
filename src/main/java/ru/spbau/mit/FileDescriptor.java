@@ -7,7 +7,7 @@ import java.io.IOException;
 /**
  * Created by Анастасия on 10.04.2016.
  */
-public class FileInformation {
+public class FileDescriptor {
     public static final int PART_SIZE = 1024 * 1024 * 10; //Size of one part of the file - 10M
 
     private boolean hasFileGotId;
@@ -16,7 +16,7 @@ public class FileInformation {
     private String fileName;
 
     //Constructor for our class with id
-    public FileInformation(int id, long size, String name) {
+    public FileDescriptor(int id, long size, String name) {
         fileId = id;
         hasFileGotId = true;
         fileSize = size;
@@ -24,7 +24,7 @@ public class FileInformation {
     }
 
     //Constructor for our class without id
-    public FileInformation(long size, String name) {
+    public FileDescriptor(long size, String name) {
         hasFileGotId = false;
         fileSize = size;
         fileName = name;
@@ -80,17 +80,18 @@ public class FileInformation {
         outputStream.writeUTF(fileName);
     }
 
-    public FileInformation readInfoFromInputStream(DataInputStream inputStream, boolean hasFileGotId) throws IOException {
-        //We create FileInformation object in two different ways, depends on has our file got id or not
+    public static FileDescriptor readInfoFromInputStream(DataInputStream inputStream, boolean hasFileGotId)
+            throws IOException {
+        //We create FileDescriptor object in two different ways, depends on has our file got id or not
         if (hasFileGotId) {
             int fileId = inputStream.readInt();
             long fileSize = inputStream.readLong();
             String fileName = inputStream.readUTF();
-            return new FileInformation(fileId, fileSize, fileName);
+            return new FileDescriptor(fileId, fileSize, fileName);
         } else {
             long fileSize = inputStream.readLong();
             String fileName = inputStream.readUTF();
-            return new FileInformation(fileSize, fileName);
+            return new FileDescriptor(fileSize, fileName);
         }
     }
 

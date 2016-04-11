@@ -39,24 +39,28 @@ public abstract class Connection implements AutoCloseable {
         return inputStream;
     }
 
-    //We need this method in Tracker class in doUpdate method
+    //We need this function in Tracker class in doUpdate method
     public String getHost() {
         return ((InetSocketAddress) socket.getRemoteSocketAddress()).getHostName();
     }
 
-    //writeCollection function for the connection, using ReadWriteHelper writeConnection function
-    protected static <T> void writeCollection(DataOutputStream outputStream, Collection<T> collection,
+    /*
+     * writeCollection function for the connection, using ReadWriteHelper writeConnection function
+     * we need it in methods of class TrackerConnection
+     */
+    protected <T> void writeCollection(Collection<T> collection,
                                            ReadWriteHelper.Writer<? super T> writer) throws IOException {
         ReadWriteHelper.writeCollection(outputStream, collection, writer);
     }
 
     //readCollection function for the connection, using ReadWriteHelper readConnection function
-    protected static <T, R extends Collection<T>> R readCollection(DataInputStream inputStream, R collection,
+    protected <T, R extends Collection<T>> R readCollection(R collection,
                                                                 ReadWriteHelper.Reader<? extends T> reader)
             throws IOException {
         return ReadWriteHelper.readCollection(inputStream, collection, reader);
     }
 
+    //We need this function in listenConnection function in class Tracker
     public int readRequest() throws IOException {
         return inputStream.readUnsignedByte();
     }

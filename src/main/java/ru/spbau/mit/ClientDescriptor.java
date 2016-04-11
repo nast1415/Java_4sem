@@ -10,11 +10,11 @@ import java.util.List;
 /**
  * Created by Анастасия on 10.04.2016.
  */
-public class ClientInformation {
+public class ClientDescriptor {
     private InetSocketAddress address;
     private List<Integer> idList;
 
-    ClientInformation(InetSocketAddress address, List<Integer> idList) {
+    ClientDescriptor(InetSocketAddress address, List<Integer> idList) {
         this.address = address;
         this.idList = idList;
     }
@@ -34,8 +34,8 @@ public class ClientInformation {
         ReadWriteHelper.writeCollection(outputStream, idList, DataOutputStream::writeInt);
     }
 
-    public static ClientInformation readInfoFromInputStream(DataInputStream inputStream) throws IOException {
-        return new ClientInformation(
+    public static ClientDescriptor readInfoFromInputStream(DataInputStream inputStream) throws IOException {
+        return new ClientDescriptor(
                 //Read address from input stream
                 ReadWriteHelper.readAddress(inputStream),
                 //Read idList from input stream
