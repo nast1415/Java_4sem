@@ -121,10 +121,14 @@ public class Client implements AutoCloseable {
         this.callbacks = callbacks;
     }
 
+    /*
+     * Send request to the server to get the list of distributed files
+     * using sendListRequest and readListResponse functions, defined in class TrackerConnection
+     */
     public List<FileDescriptor> list() throws IOException {
         try (TrackerConnection connection = connectToTracker()) {
-            connection.listOfFilesRequest();
-            return connection.readListOfFilesResponse();
+            connection.sendListRequest();
+            return connection.readListResponse();
         }
     }
 
@@ -144,20 +148,20 @@ public class Client implements AutoCloseable {
         return true;
     }
 
-    public FileDescriptor newFile(Path path) throws Exception {
+   public FileDescriptor newFile(Path path) throws Exception {
         if (!Files.isRegularFile(path)) {
             throw new IllegalArgumentException("File not exists or is not a regular file.");
         }
 
         FileDescriptor newDescriptor = new FileDescriptor(Files.size(path), path.getFileName().toString());
         try (TrackerConnection connection = connectToTracker()) {
-            connection.uploadRequest(newDescriptor);
+            connection.sendUploadRequest(newDescriptor);
             int newId = connection.readUploadResponse();
             newDescriptor.setId(newId);
         }
-        FileInfo newinfo = new FileInfo(newDescriptor, path, null);
+        FileInfo newInfo = new FileInfo(newDescriptor, path, null);
         try (MyLock myLock = MyLock.lock(lock.writeLock())) {
-            files.put(newDescriptor.getFileId(), newinfo);
+            files.put(newDescriptor.getFileId(), newInfo);
         }
         return newDescriptor;
     }
@@ -201,21 +205,21 @@ public class Client implements AutoCloseable {
 
     private List<InetSocketAddress> sources(Collection<Integer> files) throws IOException {
         try (TrackerConnection connection = connectToTracker()) {
-            connection.sourcesRequest(files);
+            connection.sendSourcesRequest(files);
             return connection.readSourcesResponse();
         }
     }
 
     private PartsBitset stat(InetSocketAddress seeder, FileInfo info) throws IOException {
         try (PeerToPeerConnection connection = connectToSeeder(seeder)) {
-            connection.statRequest(info.descriptor.getFileId());
+            connection.sendStatRequest(info.descriptor.getFileId());
             return connection.readStatResponse(info.descriptor.getNumberOfTheParts());
         }
     }
 
     private void get(InetSocketAddress seeder, FileInfo info, int partId) throws IOException {
         try (PeerToPeerConnection connection = connectToSeeder(seeder)) {
-            connection.getRequest(new Request(info.descriptor.getFileId(), partId));
+            connection.sendGetRequest(new Request(info.descriptor.getFileId(), partId));
             try (RandomAccessFile file = new RandomAccessFile(info.localPath.toString(), "rw")) {
                 connection.readGetResponse(file, partId, info.descriptor);
             }
@@ -230,20 +234,20 @@ public class Client implements AutoCloseable {
             availableFiles = files
                     .values()
                     .stream()
-                    .filter(fileinfo -> {
-                        try (MyLock myLock1 = MyLock.lock(fileinfo.fileLock.readLock())) {
+                    .filter(fileInfo -> {
+                        try (MyLock myLock1 = MyLock.lock(fileInfo.fileLock.readLock())) {
 
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        return fileinfo.parts.getCount() > 0;
+                        return fileInfo.parts.getCount() > 0;
                     })
                     .map(fileInfo -> fileInfo.descriptor.getFileId())
                     .collect(Collectors.toList());
         }
         ClientDescriptor descriptor = new ClientDescriptor(new InetSocketAddress("", port), availableFiles);
         try (TrackerConnection trackerConnection = connectToTracker()) {
-            trackerConnection.updateRequest(descriptor);
+            trackerConnection.sendUpdateRequest(descriptor);
             return trackerConnection.readUpdateResponse();
         }
     }
@@ -287,7 +291,7 @@ public class Client implements AutoCloseable {
             info = files.get(fileId);
         }
         try (MyLock myLock = MyLock.lock(info.fileLock.readLock())) {
-            connection.getStatResponse(info.parts);
+            connection.writeStatResponse(info.parts);
         }
     }
 

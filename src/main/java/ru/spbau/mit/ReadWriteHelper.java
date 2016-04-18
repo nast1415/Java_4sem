@@ -11,6 +11,10 @@ import java.util.Collection;
 /**
  * Created by Анастасия on 10.04.2016.
  */
+
+/**
+ * This class contains functions that help us to read and write to/from output/input stream address and collections
+ */
 public abstract class ReadWriteHelper {
     private static final int IP_LENGTH = 4; //We need it to read IP from the DataInputStream while reading address
 
@@ -25,8 +29,8 @@ public abstract class ReadWriteHelper {
         for (int i = 0; i < IP_LENGTH; i++) {
             buffer[i] = inputStream.readByte();
         }
-
-        int port = inputStream.readUnsignedShort(); //Read port number
+        //Read port number
+        int port = inputStream.readUnsignedShort();
         //Create InetSocketAddress object using InetSocketAddress(InetAddress, int) constructor
         return new InetSocketAddress(InetAddress.getByAddress(buffer), port);
     }
@@ -42,7 +46,8 @@ public abstract class ReadWriteHelper {
 
     public static <T> void writeCollection(DataOutputStream outputStream, Collection<T> collection,
                                            Writer<? super T> writer) throws IOException {
-        outputStream.writeInt(collection.size()); //Write size of collection
+        //Write size of collection
+        outputStream.writeInt(collection.size());
         //Write all elements of collection
         for (T element : collection) {
             writer.write(outputStream, element);
@@ -51,7 +56,8 @@ public abstract class ReadWriteHelper {
 
     public static <T, R extends Collection<T>> R readCollection(DataInputStream inputStream, R collection,
                                                                 Reader<? extends T> reader) throws IOException {
-        int collectionSize = inputStream.readInt(); //Read size of collection
+        //Read size of collection
+        int collectionSize = inputStream.readInt();
         //Read all elements and add to collection
         for (int i = 0; i < collectionSize; i++) {
             collection.add(reader.read(inputStream));

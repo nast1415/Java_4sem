@@ -39,7 +39,7 @@ public abstract class Connection implements AutoCloseable {
         return inputStream;
     }
 
-    //We need this function in Tracker class in doUpdate method
+    //We need this function in Tracker class in update() method
     public String getHost() {
         return ((InetSocketAddress) socket.getRemoteSocketAddress()).getHostName();
     }

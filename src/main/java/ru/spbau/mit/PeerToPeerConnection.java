@@ -17,7 +17,7 @@ public class PeerToPeerConnection extends Connection {
 
     //Methods related to stat() function
 
-    public void statRequest(int fileId) throws IOException {
+    public void sendStatRequest(int fileId) throws IOException {
         DataOutputStream outputStream = getOutputStream();
         outputStream.writeByte(STAT_REQUEST);
         outputStream.writeInt(fileId);
@@ -28,7 +28,7 @@ public class PeerToPeerConnection extends Connection {
         return getInputStream().readInt();
     }
 
-    public void getStatResponse(PartsBitset parts) throws IOException {
+    public void writeStatResponse(PartsBitset parts) throws IOException {
         DataOutputStream outputStream = getOutputStream();
         parts.writeDataToOutputStream(outputStream);
         outputStream.flush();
@@ -40,7 +40,7 @@ public class PeerToPeerConnection extends Connection {
 
     //Methods related to get() function
 
-    public void getRequest(Request request) throws IOException {
+    public void sendGetRequest(Request request) throws IOException {
         DataOutputStream outputStream = getOutputStream();
         outputStream.writeByte(GET_REQUEST);
         request.writeRequestToOutputStream(outputStream);

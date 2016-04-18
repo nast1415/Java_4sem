@@ -10,20 +10,20 @@ import java.util.List;
 /**
  * Created by Анастасия on 10.04.2016.
  */
-public class ClientDescriptor {
+public final class ClientDescriptor {
     private InetSocketAddress address;
     private List<Integer> idList;
 
-    ClientDescriptor(InetSocketAddress address, List<Integer> idList) {
+    public ClientDescriptor(InetSocketAddress address, List<Integer> idList) {
         this.address = address;
         this.idList = idList;
     }
 
-    InetSocketAddress getAddress() {
+    public InetSocketAddress getAddress() {
         return address;
     }
 
-    List<Integer> getIdList() {
+    public List<Integer> getIdList() {
         return idList;
     }
 

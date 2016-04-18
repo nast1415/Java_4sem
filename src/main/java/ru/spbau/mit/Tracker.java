@@ -121,7 +121,7 @@ public class Tracker implements AutoCloseable {
 
     private void list(TrackerConnection connection) throws Exception {
         try (MyLock myLock = MyLock.lock(lock.readLock())) {
-            connection.getListOfFilesResponse(files);
+            connection.writeListResponse(files);
         }
     }
 
@@ -132,7 +132,7 @@ public class Tracker implements AutoCloseable {
             fileDescriptor.setId(newId);
             files.add(fileDescriptor);
         }
-        connection.getUploadResponse(fileDescriptor.getFileId());
+        connection.writeUploadResponse(fileDescriptor.getFileId());
     }
 
     private void sources(TrackerConnection connection) throws Exception {
@@ -148,7 +148,7 @@ public class Tracker implements AutoCloseable {
                     .map(ClientDescriptor::getAddress)
                     .collect(Collectors.toList());
         }
-        connection.getSourcesResponse(result);
+        connection.writeSourcesResponse(result);
     }
 
     private void update(TrackerConnection connection) throws Exception {
@@ -176,7 +176,7 @@ public class Tracker implements AutoCloseable {
             }
         }, TrackerConnection.UPDATE_DELAY, TimeUnit.MILLISECONDS);
 
-        connection.getUpdateResponse(true);
+        connection.writeUpdateResponse(true);
     }
 
 

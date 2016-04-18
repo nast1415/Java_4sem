@@ -3,11 +3,12 @@ package ru.spbau.mit;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Created by Анастасия on 10.04.2016.
  */
-public class FileDescriptor {
+public final class FileDescriptor {
     public static final int PART_SIZE = 1024 * 1024 * 10; //Size of one part of the file - 10M
 
     private boolean hasFileGotId;
@@ -94,5 +95,18 @@ public class FileDescriptor {
             return new FileDescriptor(fileSize, fileName);
         }
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof FileDescriptor)) {
+            return false;
+        }
+        FileDescriptor that = (FileDescriptor) obj;
+        return this.hasFileGotId == that.hasFileGotId
+                && this.fileId == that.fileId
+                && Objects.equals(this.fileName, that.fileName)
+                && this.fileSize == that.fileSize;
+    }
+
 
 }

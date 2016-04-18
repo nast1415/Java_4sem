@@ -22,20 +22,20 @@ public class TrackerConnection extends Connection {
     public static final int SOURCES_REQUEST = 3;
     public static final int UPDATE_REQUEST = 4;
 
+    //Constructor for our class same as constructor for Connection class
     protected TrackerConnection(Socket socket) throws IOException {
         super(socket);
     }
 
     //Methods related to list() function
 
-    public void listOfFilesRequest() throws IOException {
+    public void sendListRequest() throws IOException {
         DataOutputStream outputStream = getOutputStream();
         outputStream.writeByte(LIST_REQUEST);
         outputStream.flush();
     }
 
-    //This function needed in list() function in class Tracker
-    public void getListOfFilesResponse(Collection<FileDescriptor> files) throws IOException {
+    public void writeListResponse(Collection<FileDescriptor> files) throws IOException {
         writeCollection(files, (outputStream, fileDescriptor) -> {
             if (!fileDescriptor.hasFileGotId()) {
                 throw new IllegalStateException("Uploaded files must have id.");
@@ -45,13 +45,14 @@ public class TrackerConnection extends Connection {
         getOutputStream().flush();
     }
 
-    public List<FileDescriptor> readListOfFilesResponse() throws IOException {
-        return readCollection(new ArrayList<>(), (dis) -> FileDescriptor.readInfoFromInputStream(dis, true));
+    public List<FileDescriptor> readListResponse() throws IOException {
+        return readCollection(new ArrayList<>(),
+                (inputStream) -> FileDescriptor.readInfoFromInputStream(inputStream, true));
     }
 
     //Methods related to upload() function
 
-    public void uploadRequest(FileDescriptor file) throws IOException {
+    public void sendUploadRequest(FileDescriptor file) throws IOException {
         if (file.hasFileGotId()) {
             throw new IllegalStateException("File, we want to upload, can't have id!");
         }
@@ -65,8 +66,7 @@ public class TrackerConnection extends Connection {
         return FileDescriptor.readInfoFromInputStream(getInputStream(), false);
     }
 
-    //We need this function in upload() function in class Tracker
-    public void getUploadResponse(int fileId) throws IOException {
+    public void writeUploadResponse(int fileId) throws IOException {
         DataOutputStream outputStream = getOutputStream();
         outputStream.writeInt(fileId);
         outputStream.flush();
@@ -78,7 +78,7 @@ public class TrackerConnection extends Connection {
 
     //Methods related to sources() function
 
-    public void sourcesRequest(Collection<Integer> idList) throws IOException {
+    public void sendSourcesRequest(Collection<Integer> idList) throws IOException {
         if (idList.size() == 0) {
             throw new IllegalStateException("Error! idList is empty!");
         }
@@ -92,7 +92,7 @@ public class TrackerConnection extends Connection {
         return readCollection(new ArrayList<>(), DataInputStream::readInt);
     }
 
-    public void getSourcesResponse(Collection<InetSocketAddress> addresses) throws IOException {
+    public void writeSourcesResponse(Collection<InetSocketAddress> addresses) throws IOException {
         writeCollection(addresses, ReadWriteHelper::writeAddress);
     }
 
@@ -102,7 +102,7 @@ public class TrackerConnection extends Connection {
 
     //Methods related to update() function
 
-    public void updateRequest(ClientDescriptor clientDescriptor) throws IOException {
+    public void sendUpdateRequest(ClientDescriptor clientDescriptor) throws IOException {
         if (clientDescriptor.getIdList().size() == 0) {
             throw new IllegalStateException("Error! idList is empty!");
         }
@@ -116,7 +116,7 @@ public class TrackerConnection extends Connection {
         return ClientDescriptor.readInfoFromInputStream(getInputStream());
     }
 
-    public void getUpdateResponse(boolean isSuccessful) throws IOException {
+    public void writeUpdateResponse(boolean isSuccessful) throws IOException {
         DataOutputStream outputStream = getOutputStream();
         outputStream.writeBoolean(isSuccessful);
         outputStream.flush();

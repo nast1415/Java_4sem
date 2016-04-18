@@ -28,6 +28,39 @@ public class Tests {
     private static final Path CLIENT3_DIR = Paths.get("test", "client-03");
     private static final long TIME_LIMIT = 70 * 1000L;
 
+    @Test
+    public void listAndUploadTest() throws Throwable {
+        try (
+                Tracker tracker = new Tracker(TRACKER_DIR);
+                Client client1 = new Client("localhost", CLIENT1_DIR);
+                Client client2 = new Client("localhost", CLIENT2_DIR)
+        ) {
+            assertAllCollectionEquals(Collections.emptyList(), client1.list(), client2.list());
+
+            FileDescriptor descriptor1 = client1.newFile(EXAMPLE_PATH);
+            FileDescriptor descriptor2 = client2.newFile(EXAMPLE_PATH);
+            assertNotEquals("Ids should be different", descriptor1.getFileId(), descriptor2.getFileId());
+
+            assertAllCollectionEquals(Arrays.asList(descriptor1, descriptor2), client1.list(), client2.list());
+        }
+    }
+
+    @Test
+    public void listConsistencyTest() throws Throwable {
+        try (Client client = new Client("localhost", CLIENT1_DIR)) {
+            FileDescriptor descriptor;
+            try (Tracker tracker = new Tracker(TRACKER_DIR)) {
+                descriptor = client.newFile(EXAMPLE_PATH);
+            }
+
+            List<FileDescriptor> list;
+            try (Tracker tracker = new Tracker(TRACKER_DIR)) {
+                list = client.list();
+            }
+            assertEquals(Collections.singletonList(descriptor), list);
+        }
+    }
+
     @Test(timeout = TIME_LIMIT)
     public void testDownload() throws Throwable {
         final DownloadWaiter waiter2 = new DownloadWaiter();
@@ -42,9 +75,9 @@ public class Tests {
                 descriptor = client1.newFile(EXAMPLE_PATH);
                 assertTrue(client2.get(descriptor.getFileId()));
 
-                // seeding
+                // Seeding
                 client1.run();
-                // leeching
+                // Leeching
                 client2.run();
 
                 synchronized (waiter2) {
@@ -54,12 +87,12 @@ public class Tests {
                 }
             }
 
-            //Now client2 is seeding, testing that
+            //Testing that now client2 seeding
             try (Client client3 = new Client("localhost", CLIENT3_DIR)) {
                 client3.setCallbacks(waiter3);
                 assertTrue(client3.get(descriptor.getFileId()));
 
-                //leeching
+                //And leeching
                 client3.run();
                 synchronized (waiter3) {
                     while (!waiter3.ready) {
