@@ -52,16 +52,25 @@ public class Tracker implements AutoCloseable {
         store();
     }
 
+    private Socket accept() throws Exception {
+        try (MyLock myLock = MyLock.lock(lock.readLock())) {
+            if (serverSocket.isClosed()) {
+                return null;
+            }
+        }
+        return serverSocket.accept();
+    }
+
     private void work() {
         while (true) {
             try {
-                Socket socket = serverSocket.accept();
+                Socket socket = accept();
                 if (socket == null) {
                     return;
                 }
                 //We listen the connection for a request byte
                 threadPool.submit(() -> listenConnection(socket));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 break;
             }
@@ -129,7 +138,7 @@ public class Tracker implements AutoCloseable {
         FileDescriptor fileDescriptor = connection.readUploadRequest();
         try (MyLock myLock = MyLock.lock(lock.writeLock())) {
             int newId = files.size();
-            fileDescriptor.setId(newId);
+            fileDescriptor = fileDescriptor.setId(newId);
             files.add(fileDescriptor);
         }
         connection.writeUploadResponse(fileDescriptor.getFileId());

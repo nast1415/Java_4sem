@@ -11,10 +11,10 @@ import java.util.Objects;
 public final class FileDescriptor {
     public static final int PART_SIZE = 1024 * 1024 * 10; //Size of one part of the file - 10M
 
-    private boolean hasFileGotId;
-    private int fileId;
-    private long fileSize;
-    private String fileName;
+    private final boolean hasFileGotId;
+    private final int fileId;
+    private final long fileSize;
+    private final String fileName;
 
     //Constructor for our class with id
     public FileDescriptor(int id, long size, String name) {
@@ -27,6 +27,7 @@ public final class FileDescriptor {
     //Constructor for our class without id
     public FileDescriptor(long size, String name) {
         hasFileGotId = false;
+        fileId = 0;
         fileSize = size;
         fileName = name;
     }
@@ -47,9 +48,8 @@ public final class FileDescriptor {
         return fileName;
     }
 
-    public void setId(int id) {
-        fileId = id;
-        hasFileGotId = true;
+    public FileDescriptor setId(int id) {
+        return new FileDescriptor(id, fileSize, fileName);
     }
 
     public int getNumberOfTheParts() {

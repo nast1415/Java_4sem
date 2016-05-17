@@ -11,8 +11,8 @@ import java.util.List;
  * Created by Анастасия on 10.04.2016.
  */
 public final class ClientDescriptor {
-    private InetSocketAddress address;
-    private List<Integer> idList;
+    private final InetSocketAddress address;
+    private final List<Integer> idList;
 
     public ClientDescriptor(InetSocketAddress address, List<Integer> idList) {
         this.address = address;
